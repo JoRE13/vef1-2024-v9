@@ -72,25 +72,38 @@ function renderResults(location, results) {
     'tr',
     {},
     el('th', {}, 'Tími'),
-    el('th', {}, 'Hiti'),
-    el('th', {}, 'Úrkoma'),
+    el('th', {}, 'Hiti (°C)'),
+    el('th', {}, 'Úrkoma (mm)'),
   );
   console.log(results);
-  const body = el(
-    'tr',
-    {},
-    el('td', {}, 'Tími'),
-    el('td', {}, 'Hiti'),
-    el('td', {}, 'Úrkoma'),
-  );
 
-  const resultsTable = el('table', { class: 'forecast' }, header, body);
+  const resultsTable = el('table', { class: 'forecast' }, header/*, body*/);
+
+  for (const row in results) {
+    const { time = 0, precipitation = 0, temperature = 0 } = results[row];
+    const time_cut = time.slice(11);
+    const body = el(
+      'tr',
+      {},
+      el('td', {}, time_cut),
+      el('td', {}, temperature),
+      el('td', {}, precipitation),
+    );
+    resultsTable.appendChild(body);
+  }
+
+  const date = results[0].time.slice(0,10);
+  const months = ['janúar', 'febrúar', 'mars','apríl','maí','júní','júlí','ágúst','september','október','nóvember','desember'];
+  const day = date.slice(8);
+  const month = months[date.slice(5,7)-1];
+  const year = date.slice(0,4);
 
   renderIntoResultsContent(
     el(
       'section',
       {},
       el('h2', {}, `Leitarniðurstöður fyrir: ${location.title}`),
+      el('p',{}, `Spá fyrir daginn ${day}. ${month} árið ${year} á breiddargráðu ${location.lat} og lengdargráðu ${location.lng}`),
       resultsTable,
     ),
   );
@@ -130,9 +143,6 @@ async function onSearch(location) {
   }
 
   renderResults(location, results ?? []);
-
-  // TODO útfæra
-  // Hér ætti að birta og taka tillit til mismunandi staða meðan leitað er.
 }
 
 /**
@@ -140,7 +150,29 @@ async function onSearch(location) {
  * Biður notanda um leyfi gegnum vafra.
  */
 async function onSearchMyLocation() {
-  // TODO útfæra
+  renderLoading();
+  if (navigator.geolocation) {
+    await navigator.geolocation.getCurrentPosition(
+        (position) => {
+            const latitude = position.coords.latitude;
+            const longitude = position.coords.longitude;
+            console.log(`Latitude: ${latitude}, Longitude: ${longitude}`);
+            onSearch( {
+              title: 'Mín staðsetning',
+              lat: latitude,
+              lng: longitude,
+            })
+        },
+        (error) => {
+            console.error(`Error (${error.code}): ${error.message}`);
+            renderError(error);
+        }
+    );
+  } else {
+    console.error("Geolocation is not supported by this browser.");
+  }
+  
+
 }
 
 /**
@@ -188,11 +220,17 @@ function render(container, locations, onSearch, onSearchMyLocation) {
   // Búum til <header> með beinum DOM aðgerðum
   const headerElement = document.createElement('header');
   const heading = document.createElement('h1');
-  heading.appendChild(document.createTextNode('<fyrirsögn>'));
+  heading.appendChild(document.createTextNode('Veðursíðan'));
   headerElement.appendChild(heading);
   parentElement.appendChild(headerElement);
 
   // TODO útfæra inngangstexta
+  const introElement = document.createElement('div');
+  introElement.classList.add('intro');
+  const introText = document.createElement('p');
+  introElement.appendChild(introText);
+  introText.appendChild(document.createTextNode('Yoyo what up. Þetta er veðursíðan. Smelltu á einn á hnöppunum hér fyrir neðan til þess að sjá upplýsingar um veðrið fyrir viðeigandi staðsetningu'));
+  parentElement.appendChild(introElement);
   // Búa til <div class="loctions">
   const locationsElement = document.createElement('div');
   locationsElement.classList.add('locations');
@@ -205,6 +243,12 @@ function render(container, locations, onSearch, onSearchMyLocation) {
   locationsElement.appendChild(locationsListElement);
 
   // <div class="loctions"><ul class="locations__list"><li><li><li></ul></div>
+
+  // Bæta við mylocation takka
+  const myLocationButton = renderLocationButton('Staðsetningin mín', () => {
+      onSearchMyLocation();
+  });
+  locationsListElement.appendChild(myLocationButton);
   for (const location of locations) {
     const liButtonElement = renderLocationButton(location.title, () => {
       console.log('Halló!!', location);
