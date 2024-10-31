@@ -5,7 +5,7 @@
     "dev": "browser-sync start --server --files ./src/ styles.css index.html",
     "copy:html": "cpy ./*.html ./build/",
     "copy:css": "cpy ./*.css ./build/",
-    "copy:js": "cpy ./src ./build/src",
+    "copy:js": "cpy ./src ./build/",
     "build": "concurrently npm:copy:*",
     "lint": "eslint ./src",
     "prettier": "prettier --write ."
